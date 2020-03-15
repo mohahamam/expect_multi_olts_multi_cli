@@ -1,0 +1,11 @@
+environment inhibit-alarms
+info configure qos interface flat | match exact:bandwidth
+
+
+
+
+
+info configure equipment ont interface flat
+
+
+show equipment slot
