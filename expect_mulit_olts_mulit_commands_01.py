@@ -1,5 +1,4 @@
-#!/usr/bin/python3
-import arrow,os,shutil,threading,subprocess,time
+import arrow,os,shutil,threading,subprocess,time,re
 from pprint import pprint
 from tqdm import tqdm
 
@@ -34,7 +33,7 @@ def create_expect_file(cleaned_commands,olt_ip,olt_username,olt_password):
 	olt_logfilename=os.path.join(logdir,olt_ip+'-'+ arrow.now().format('YYYYMMDDHHmmss')+'-7360i-cli.log')
 	
 	with open(expect_commands_per_olt,'w') as outputfile:
-		outputfile.write('#!/usr/bin/expect\nset timeout -1\n')
+		outputfile.write('#!/usr/bin/expect\nset timeout 10\n')
 		outputfile.write('log_file '+olt_logfilename+'\n')
 		#outputfile.write('spawn ssh -oHostKeyAlgorithms=+ssh-dss '+olt_username+'@'+olt_ip+'\n')
 		outputfile.write('spawn ssh '+olt_username+'@'+olt_ip+'\n')
@@ -93,7 +92,7 @@ def canweproceed():
 		time.sleep(0.25)
 		exit()
 canweproceed()
-
+start_script = time.time()
 for olt in list_of_olts:
 	create_expect_file(input_commands,olt.split(',')[0],olt.split(',')[1],olt.split(',')[2])	
 
@@ -118,13 +117,17 @@ def executing_commands_files(expect_file):
 		list_of_failed_files.append(expect_file)
 
 a=0
+b=0
 with tqdm(total=len(list_of_expect_files)) as pbar:
 	for group in list_of_lists:
 		threads = []
 		a+=1
 		
 		print('Processing Group',str(a))
-		pprint(group)
+		for item in group:
+			b+=1
+			m=re.search(r'(\d+\.\d+\.\d+\.\d+)',str(item)).group(0)
+			print('OLT-'+str(b)+'/'+str(len(list_of_expect_files))+' : '+m)
 		for expectfile in group:
 			threadprocess=threading.Thread(target=executing_commands_files,args=[os.path.join(commands_dir,expectfile)])
 			threads.append(threadprocess)
@@ -133,16 +136,28 @@ with tqdm(total=len(list_of_expect_files)) as pbar:
 		for x in threads:
 			x.join()
 			pbar.update(1)
-			
-			
-print('Script Completed')
+
+
+end_script = time.time()			
+total_script_time=end_script-start_script
+print('\n'+'#'*79)
+print('\nScript Completed')
+print('The script was executed in',str(total_script_time),'Seconds')
 print('You will find all the logs in the directory',logdir)
 
+
+
+error_file_name=os.path.join(logdir,'error_logs_'+arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+with open (error_file_name,'w') as error_file:
+	error_file.write('The following files failed to execute, please check them again:\n')
+	for file_01 in list_of_failed_files:
+		error_file.write(file_01+'\n')
+	
+print('\n\nThe following files failed to execute, please check them again:\n')
+for file_01 in list_of_failed_files:
+	print(file_01)
+	
 try:
 	shutil.make_archive(logdir, 'zip', logdir)
 except:
 	print('could not zip the directory',logdir)
-
-print('The following files failed to execute, please check them again:\n')
-for file_01 in list_of_failed_files:
-	print(file_01)
