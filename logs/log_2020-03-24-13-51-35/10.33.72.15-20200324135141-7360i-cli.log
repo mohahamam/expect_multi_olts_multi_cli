@@ -1,0 +1,6 @@
+spawn ssh isadmin@10.33.72.15
+ssh: connect to host 10.33.72.15 port 22: Operation timed out
+expect: spawn id exp7 not open
+    while executing
+"expect ">#""
+    (file "commands/expect_commands_10.33.72.15-20200324135141-7360i-cli.sh" line 10)

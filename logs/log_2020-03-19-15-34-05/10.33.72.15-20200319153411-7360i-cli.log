@@ -1,0 +1,13 @@
+spawn ssh isadmin@10.33.72.15
+environment inhibit-alarms
+exit all
+info configure qos interface flat | match exact:bandwidth
+info configure equipment ont interface flat
+show equipment slot
+
+###Ending the session
+ssh: connect to host 10.33.72.15 port 22: Operation timed out
+send: spawn id exp7 not open
+    while executing
+"send "logout\r""
+    (file "commands/expect_commands_10.33.72.15-20200319153411-7360i-cli.sh" line 23)

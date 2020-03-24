@@ -27,13 +27,14 @@ for line in input_commands:
 
 
 
+
 # A funtion to creat the expect files
 def create_expect_file(cleaned_commands,olt_ip,olt_username,olt_password):
 	expect_commands_per_olt=os.path.join(commands_dir,'expect_commands_'+olt_ip+'-'+ arrow.now().format('YYYYMMDDHHmmss')+'-7360i-cli.sh')
 	olt_logfilename=os.path.join(logdir,olt_ip+'-'+ arrow.now().format('YYYYMMDDHHmmss')+'-7360i-cli.log')
-	
+		  
 	with open(expect_commands_per_olt,'w') as outputfile:
-		outputfile.write('#!/usr/bin/expect\nset timeout 10\n')
+		outputfile.write('#!/usr/bin/expect\nset timeout -1\nset prompts ">#|#|\\$"\n')
 		outputfile.write('log_file '+olt_logfilename+'\n')
 		#outputfile.write('spawn ssh -oHostKeyAlgorithms=+ssh-dss '+olt_username+'@'+olt_ip+'\n')
 		outputfile.write('spawn ssh '+olt_username+'@'+olt_ip+'\n')
@@ -45,17 +46,23 @@ def create_expect_file(cleaned_commands,olt_ip,olt_username,olt_password):
 		for line in cleaned_commands:
 			if 'environment inhibit-alarms' in line:
 				outputfile.write('send "'+line+'\\r"'+'\n')
-				outputfile.write('expect "#"'+'\n')
+				outputfile.write('expect -re $prompts'+'\n')
 				outputfile.write('send "exit all\\r"'+'\n')
-				outputfile.write('expect ">#"'+'\n')
+				outputfile.write('expect -re $prompts'+'\n')
+			elif '#' in line and '[' in line or ']' in line:
+				outputfile.write('send "'+line.replace('[','\[').replace(']','\]')+'\\r"'+'\n')
+
+				outputfile.write('expect "$"'+'\n')
 			else:
 				outputfile.write('send "'+line+'\\r"'+'\n')
-				outputfile.write('expect ">#"'+'\n')
+				outputfile.write('expect -re $prompts'+'\n')##adding expect character
+		outputfile.write('send "exit all\\r"'+'\n')##exit all
+		outputfile.write('expect ">#"'+'\n')##exit all
 		outputfile.write('send "\\r"'+'\n')
 		outputfile.write('send "###Ending the session\\r"'+'\n')
 		outputfile.write('expect ">#"'+'\n')
 		outputfile.write('send "logout\\r"'+'\n')
-#		outputfile.write('interact'+'\n')
+		outputfile.write('interact'+'\n')
 				
 #Creating the list of OLTs.
 olts_file=input('\nPlease provide the input hosts file name, format OLTIP,username,password in each line:\n')
